@@ -24,6 +24,22 @@ type ViewerIcePayload = {
 }
 
 export function HostScreen() {
+  const supportsScreenCapture =
+    typeof navigator !== 'undefined' &&
+    typeof navigator.mediaDevices !== 'undefined' &&
+    typeof navigator.mediaDevices.getDisplayMedia === 'function'
+  const isSecureBrowserContext =
+    typeof window !== 'undefined' ? window.isSecureContext : false
+  const isMobileBrowser =
+    typeof navigator !== 'undefined'
+      ? /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+      : false
+  const hostSupportMessage = !isSecureBrowserContext
+    ? 'Screen sharing only works on HTTPS or localhost.'
+    : isMobileBrowser || !supportsScreenCapture
+      ? 'This browser cannot share its screen. Start the host on a desktop Chrome or Edge browser, then join from your phone as the viewer.'
+      : ''
+
   const socketRef = useRef<Socket | null>(null)
   const sessionIdRef = useRef<string | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -286,6 +302,18 @@ export function HostScreen() {
       return
     }
 
+    if (!isSecureBrowserContext) {
+      setError('Screen sharing only works on HTTPS or localhost.')
+      return
+    }
+
+    if (!supportsScreenCapture) {
+      setError(
+        'This browser cannot share its screen. Use desktop Chrome or Edge for the host, then open the viewer link on the second device.',
+      )
+      return
+    }
+
     setError('')
 
     try {
@@ -325,11 +353,15 @@ export function HostScreen() {
         void createPeerForViewer(viewerId)
       }
     } catch (shareError) {
-      setError(
-        shareError instanceof Error
-          ? shareError.message
-          : 'The browser could not start screen sharing.',
-      )
+      const shareErrorName =
+        shareError instanceof DOMException ? shareError.name : undefined
+
+      if (shareErrorName === 'NotAllowedError') {
+        setError('Screen sharing was cancelled or blocked by the browser.')
+        return
+      }
+
+      setError(hostSupportMessage || 'The browser could not start screen sharing.')
     }
   }
 
@@ -362,6 +394,8 @@ export function HostScreen() {
           never asks for microphone access.
         </p>
 
+        {hostSupportMessage ? <p className="error-text">{hostSupportMessage}</p> : null}
+
         <div className="button-row">
           <button className="primary-button" onClick={handleCreateSession}>
             {sessionId ? 'Create a new session' : 'Start session'}
@@ -369,7 +403,7 @@ export function HostScreen() {
           <button
             className="secondary-button"
             onClick={handleStartSharing}
-            disabled={!sessionId || isSharing}
+            disabled={!sessionId || isSharing || !supportsScreenCapture || !isSecureBrowserContext}
           >
             Start screen share
           </button>
