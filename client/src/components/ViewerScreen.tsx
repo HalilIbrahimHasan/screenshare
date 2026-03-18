@@ -31,6 +31,10 @@ type FullscreenCapableVideo = HTMLVideoElement & {
 }
 
 export function ViewerScreen({ initialSessionId }: ViewerScreenProps) {
+  const isLikelyIOS =
+    typeof navigator !== 'undefined' &&
+    (/iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
   const socketRef = useRef<Socket | null>(null)
   const peerRef = useRef<RTCPeerConnection | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -122,6 +126,7 @@ export function ViewerScreen({ initialSessionId }: ViewerScreenProps) {
     if (isImmersiveMode) {
       document.body.style.overflow = 'hidden'
       document.body.style.touchAction = 'none'
+      window.scrollTo(0, 0)
     }
 
     return () => {
@@ -259,6 +264,11 @@ export function ViewerScreen({ initialSessionId }: ViewerScreenProps) {
     try {
       setError('')
 
+      if (isLikelyIOS) {
+        setIsImmersiveMode(true)
+        return
+      }
+
       if (videoElement?.requestFullscreen) {
         await videoElement.requestFullscreen()
         return
@@ -285,14 +295,9 @@ export function ViewerScreen({ initialSessionId }: ViewerScreenProps) {
       }
 
       setIsImmersiveMode(true)
-      setError(
-        'Native fullscreen is limited in this browser, so the viewer was expanded to fill the screen inside the page.',
-      )
+      return
     } catch {
       setIsImmersiveMode(true)
-      setError(
-        'Native fullscreen was blocked, so the viewer was expanded to fill the screen inside the page instead.',
-      )
     }
   }
 
@@ -330,7 +335,7 @@ export function ViewerScreen({ initialSessionId }: ViewerScreenProps) {
 
         <div className="button-row">
           <button className="secondary-button" onClick={handleFullscreen} disabled={!remoteStream}>
-            Full screen
+            {isLikelyIOS ? 'Open full view' : 'Full screen'}
           </button>
           <button className="ghost-button" onClick={handleLeaveSession} disabled={!joinedSessionId}>
             Leave
