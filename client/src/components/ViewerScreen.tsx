@@ -21,6 +21,15 @@ type ViewerScreenProps = {
   initialSessionId: string
 }
 
+type FullscreenCapableElement = HTMLElement & {
+  webkitRequestFullscreen?: () => Promise<void> | void
+}
+
+type FullscreenCapableVideo = HTMLVideoElement & {
+  webkitEnterFullscreen?: () => void
+  webkitEnterFullScreen?: () => void
+}
+
 export function ViewerScreen({ initialSessionId }: ViewerScreenProps) {
   const socketRef = useRef<Socket | null>(null)
   const peerRef = useRef<RTCPeerConnection | null>(null)
@@ -223,14 +232,46 @@ export function ViewerScreen({ initialSessionId }: ViewerScreenProps) {
   }
 
   async function handleFullscreen() {
-    if (!viewerFrameRef.current) {
+    const videoElement = videoRef.current as FullscreenCapableVideo | null
+    const frameElement = viewerFrameRef.current as FullscreenCapableElement | null
+
+    if (!videoElement && !frameElement) {
       return
     }
 
     try {
-      await viewerFrameRef.current.requestFullscreen()
+      setError('')
+
+      if (videoElement?.requestFullscreen) {
+        await videoElement.requestFullscreen()
+        return
+      }
+
+      if (videoElement?.webkitEnterFullscreen) {
+        videoElement.webkitEnterFullscreen()
+        return
+      }
+
+      if (videoElement?.webkitEnterFullScreen) {
+        videoElement.webkitEnterFullScreen()
+        return
+      }
+
+      if (frameElement?.requestFullscreen) {
+        await frameElement.requestFullscreen()
+        return
+      }
+
+      if (frameElement?.webkitRequestFullscreen) {
+        await frameElement.webkitRequestFullscreen()
+        return
+      }
+
+      setError('Fullscreen is not supported in this browser. Try rotating your phone to landscape.')
     } catch {
-      setError('Fullscreen was blocked by the browser.')
+      setError(
+        'Fullscreen was blocked by the browser. On iPhone, try tapping the video again or use landscape mode if Safari keeps it inline.',
+      )
     }
   }
 
