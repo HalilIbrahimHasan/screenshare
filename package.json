@@ -1,0 +1,21 @@
+{
+  "name": "screen-share-app",
+  "private": true,
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client && npm run build -w server",
+    "lint": "npm run lint -w client && npm run lint -w server",
+    "preview": "npm run build && npm run start -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
