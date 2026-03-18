@@ -251,6 +251,39 @@
   touch-action: pan-x pan-y pinch-zoom;
 }
 
+.immersive-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  margin: 0;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
+    max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  border-radius: 0;
+  border: 0;
+  background: #020617;
+}
+
+.immersive-panel .panel-header {
+  align-items: center;
+}
+
+.immersive-close {
+  flex-shrink: 0;
+}
+
+.immersive-viewer-frame {
+  min-height: calc(100svh - 7rem);
+  height: calc(100svh - 7rem);
+  margin-top: 0.75rem;
+  border-radius: 0.9rem;
+}
+
+.immersive-hint {
+  margin-top: 0.75rem;
+  color: rgba(255, 255, 255, 0.78);
+  text-align: center;
+}
+
 .stream-frame video {
   width: 100%;
   height: 100%;
@@ -296,5 +329,10 @@
   .stream-frame,
   .viewer-frame {
     min-height: 18rem;
+  }
+
+  .immersive-panel {
+    padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right))
+      max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
   }
 }

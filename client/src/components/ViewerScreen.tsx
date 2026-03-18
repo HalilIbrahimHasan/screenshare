@@ -46,6 +46,7 @@ export function ViewerScreen({ initialSessionId }: ViewerScreenProps) {
   const [error, setError] = useState('')
   const [isSocketReady, setIsSocketReady] = useState(false)
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null)
+  const [isImmersiveMode, setIsImmersiveMode] = useState(false)
 
   const closePeer = useCallback(() => {
     if (!peerRef.current) {
@@ -113,6 +114,21 @@ export function ViewerScreen({ initialSessionId }: ViewerScreenProps) {
 
     videoRef.current.srcObject = remoteStream
   }, [remoteStream])
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    const previousTouchAction = document.body.style.touchAction
+
+    if (isImmersiveMode) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.touchAction = 'none'
+    }
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.body.style.touchAction = previousTouchAction
+    }
+  }, [isImmersiveMode])
 
   useEffect(() => {
     const socket = io({
@@ -228,6 +244,7 @@ export function ViewerScreen({ initialSessionId }: ViewerScreenProps) {
   function handleLeaveSession() {
     socketRef.current?.emit('viewer:leave-session')
     syncSessionInUrl()
+    setIsImmersiveMode(false)
     clearViewerState('You left the session')
   }
 
@@ -267,10 +284,14 @@ export function ViewerScreen({ initialSessionId }: ViewerScreenProps) {
         return
       }
 
-      setError('Fullscreen is not supported in this browser. Try rotating your phone to landscape.')
-    } catch {
+      setIsImmersiveMode(true)
       setError(
-        'Fullscreen was blocked by the browser. On iPhone, try tapping the video again or use landscape mode if Safari keeps it inline.',
+        'Native fullscreen is limited in this browser, so the viewer was expanded to fill the screen inside the page.',
+      )
+    } catch {
+      setIsImmersiveMode(true)
+      setError(
+        'Native fullscreen was blocked, so the viewer was expanded to fill the screen inside the page instead.',
       )
     }
   }
@@ -338,15 +359,20 @@ export function ViewerScreen({ initialSessionId }: ViewerScreenProps) {
         {error ? <p className="error-text">{error}</p> : null}
       </div>
 
-      <div className="panel stream-panel mobile-first">
+      <div className={isImmersiveMode ? 'panel stream-panel mobile-first immersive-panel' : 'panel stream-panel mobile-first'}>
         <div className="panel-header">
           <div>
             <p className="eyebrow">Live view</p>
             <h2>Viewer screen</h2>
           </div>
+          {isImmersiveMode ? (
+            <button className="secondary-button immersive-close" onClick={() => setIsImmersiveMode(false)}>
+              Exit full view
+            </button>
+          ) : null}
         </div>
 
-        <div className="stream-frame viewer-frame" ref={viewerFrameRef}>
+        <div className={isImmersiveMode ? 'stream-frame viewer-frame immersive-viewer-frame' : 'stream-frame viewer-frame'} ref={viewerFrameRef}>
           {remoteStream ? (
             <video ref={videoRef} autoPlay playsInline />
           ) : (
@@ -356,6 +382,9 @@ export function ViewerScreen({ initialSessionId }: ViewerScreenProps) {
             </div>
           )}
         </div>
+        {isImmersiveMode ? (
+          <p className="immersive-hint">Rotate to landscape for the largest possible view on iPhone.</p>
+        ) : null}
       </div>
     </section>
   )
